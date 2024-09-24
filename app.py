@@ -4,12 +4,14 @@ import PIL
 from PIL import Image
 import PIL.Image
 import cv2
+import shutil
 # External packages
 import streamlit as st
 import tempfile
 import numpy as np
 import pandas as pd
-
+import os
+import time
 # Local Modules
 import settings
 import helper
@@ -51,7 +53,7 @@ st.set_page_config(
 st.title("L&T PES BOM Verification")
 
 with st.sidebar:
-    st.image("C:\\Users\\20372227\\Desktop\\Model Workspace\\ui\\assets\\logo_new.jpg", width=250)
+    st.image("/home/aicoe-lnx/Desktop/xyz/UI/assets/logo.png", width=250)
 
 confidence = 0.25
 model_path = settings.DETECTION_MODEL
@@ -172,7 +174,6 @@ elif source_radio == settings.VIDEO:
                 if source_video is None:
                     default_video_path = str(settings.DEFAULT_VIDEO)
                     st.video(default_video_path, format="video/mp4")
-                    # st.write("Input Video")
                     # Add a caption below the video with custom styling
                     caption = """
                     <div style="text-align: center; color: black; font-size: 25px;">
@@ -182,73 +183,7 @@ elif source_radio == settings.VIDEO:
 
                     st.markdown(caption, unsafe_allow_html=True)
                 else:
-                    
-                    # temp_file = tempfile.NamedTemporaryFile(delete=False)
-                    # temp_file.write(source_video.read())
-                    # vid_cap = cv2.VideoCapture(temp_file.name)
-
-                    # # Define a temporary output file to store the resized video
-                    # # out_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-                    # out_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-
-                    # fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                    # # Define the codec and create VideoWriter object for the resized video
-                    # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec
-                    # # out = cv2.VideoWriter(out_file.name, fourcc, fps, (480, 480))
-                    # out = cv2.VideoWriter(out_file.name, fourcc, fps, (480,480))
-                    # while True:
-                    #     success, frame = vid_cap.read()
-                        
-                    #     # if success:
-                    #     #     h, w, _ = frame.shape
-                    #     #     min_dim = min(h, w)
-                    #     #     if h > w:
-                    #     #         # Crop the top
-                    #     #         start_y = 0
-                    #     #         cropped_frame = frame[start_y:min_dim, 0:w] 
-                    #     #     else:
-                    #     #         # Center crop
-                    #     #         start_x = (w - min_dim) // 2
-                    #     #         cropped_frame = frame[0:h, start_x:start_x + min_dim]
-                    #     #     frame_resized = cv2.resize(cropped_frame, (480, 480))
-                    #     out.write(frame)
-                    #     if not success:
-                    #         vid_cap.release()
-                    #         out.release()
-                    #         break
-
                     st.video(source_video, format = "video/mp4") #Uploaded video
-                                    
-                    # tfile = tempfile.NamedTemporaryFile(delete=False)
-                    # tfile.write(uploaded_file.read())
-                    # # Open video file with OpenCV
-                    # cap = cv2.VideoCapture(tfile.name)
-                    # # Get original video's width, height, and FPS
-                    # original_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    # original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    
-                
-            
-                    # # Process video frame by frame
-                    # while cap.isOpened():
-                    #     ret, frame = cap.read()
-                    #     if not ret:
-                    #         break
-                    #     # Resize the frame to 480x480
-                    #     resized_frame = cv2.resize(frame, (480, 480))
-                
-                    #     # Write the resized frame to the output video
-                    #     out.write(resized_frame)
-                
-                    # # Release resources
-                    # cap.release()
-                    # out.release()
-                
-                    # # Display the resized video in Streamlit
-                    # st.text("Video resizing completed. Displaying resized video:")
-                    # st.video(out_file.name)
-
-                    
 
             except Exception as ex:
                 st.error("Error occurred while opening the video.")
@@ -260,67 +195,9 @@ elif source_radio == settings.VIDEO:
             # Giving some empty space between the Input Video and Detected video
             st.markdown(caption, unsafe_allow_html=True)
 
-            #Having the detected video below the input video
-            
-            # else:
-            #     # is_display_tracker, tracker = helper.display_tracker_options();
-            #     if st.sidebar.button('Detect Objects'):
-            #         temp_file = tempfile.NamedTemporaryFile(delete=False)
-            #         temp_file.write(source_video.read());
-            #         try:
-            #             vid_cap = cv2.VideoCapture(
-            #                 str(temp_file.name))
-                        
-            #             st_frame = st.empty()
-            #             while True:
-            #                 success, frame = vid_cap.read()
-            #                 if success:
-            #                     # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert to RGB
-            #                     # frame = frame[0:2448,0:2448] #cropping
-            #                     # frame = cv2.resize(frame, (480, 480)) #resizing                        
-            #                     h, w, _ = frame.shape
-            #                     min_dim = min(h, w)
-            #                     if h > w:
-            #                         # Crop the top
-            #                         start_y = 0
-            #                         cropped_frame = frame[start_y:min_dim, 0:w] 
-            #                     else:
-            #                         # Center crop
-            #                         start_x = (w - min_dim) // 2
-            #                         cropped_frame = frame[0:h, start_x:start_x + min_dim]
-            #                     frame_resized = cv2.resize(cropped_frame, (480, 480))
-            #                     # frame = cv2.resize(frame, (720, int(720*(9/16))))  # Resize if needed
-            #                     helper._display_detected_frames(confidence,
-            #                                             model,
-            #                                             st_frame,
-            #                                             frame_resized
-            #                                             # is_display_tracker,
-            #                                             # tracker
-            #                                             )
-            #                 else:
-            #                     vid_cap.release()
-            #                     break
-            #         except Exception as e:
-            #             print("err", e)
-            #             st.sidebar.error("Error loading video: " + str(e))
-            
-        # helper.play_stored_video(confidence, model)
-
-        
-
         # Table logic
         with col2:
-            # Static table
-            # data = {
-            #     "S.No" : [1,2,3],
-            #     "Component Name": ["Fan","Acos","Ethernet Switch"],
-            #     "Component Class" : ["FAN" , "ACOS" , "ETHSW"],
-            #     "BOM Class" : ["SPE0101186501","SPE0101172133","IPMS105146201"],
-            #     "Quantity" : [1,2,3]
-            # }
-            # df = pd.DataFrame(data)
-            # st.table(df)
-
+        
             if source_video is None:
                 default_detected_video_path = str(settings.DEFAULT_DETECT_VIDEO)
                 st.video(default_detected_video_path, format="video/mp4")
@@ -331,139 +208,61 @@ elif source_radio == settings.VIDEO:
                     """
 
                 st.markdown(caption, unsafe_allow_html=True)
-            else:
+            else:  
                 if st.sidebar.button('Detect Objects'):
                     temp_file = tempfile.NamedTemporaryFile(delete=False)
                     temp_file.write(source_video.read())
-                    try:
-                        vid_cap = cv2.VideoCapture(str(temp_file.name))
-                        st_frame = st.empty()
-                        frame_re_ini = 0
-                        while True:
-                            success, frame = vid_cap.read()
-                            if success:
-                                h, w, _ = frame.shape
-                                min_dim = min(h, w)
-                                if h > w:
-                                    # Crop the top
-                                    start_y = 0
-                                    cropped_frame = frame[start_y:min_dim, 0:w] 
-                                else:
-                                    # Center crop
-                                    start_x = (w - min_dim) // 2
-                                    cropped_frame = frame[0:h, start_x:start_x + min_dim]
-                                frame_resized = cv2.resize(cropped_frame, (480, 480))
-                                frame_global_output = helper._display_detected_frames(confidence,model,st_frame,frame_resized, frame_re_ini)
-                                frame_re_ini+=1
-                            else:
-                                vid_cap.release()
-                                global_check = True
-                                break
-                    except Exception as e:
-                        print("Error:", e)
-                        st.sidebar.error("Error loading video: " + str(e))
-
-                #Dynamic table
-            if global_check == True:
-                # Initialize a dictionary to accumulate quantities
-                component_totals = {}
-                for frame_index, counts in frame_global_output.items():
-                    for class_name, count in counts.items():
-                        # Accumulate the quantity for each component class
-                        if class_name in component_totals:
-                            component_totals[class_name] += count
-                        else:
-                            component_totals[class_name] = count
-                table_data = []
-                s_no = 1  
-                for class_name, total_quantity in component_totals.items():
-                    # Check if class_name is in bom_name_id to get the Component Name and BOM Item Code
-                    if class_name in bom_name_id:
-                        component_name, bom_item_code = bom_name_id[class_name]
-                    else:
-                        component_name = None
-                        bom_item_code = None
-
-                    # Append a new row for each unique component class
-                    table_data.append({
-                        "S.No": s_no,
-                        "Component Class": class_name,
-                        "Component Name": component_name,
-                        "BOM Item Code":bom_item_code,
-                        "Quantity": total_quantity
-                    })
-                    s_no += 1
-                frame_global_output.clear()
-                df = pd.DataFrame(table_data)
-                st.table(df)
-
-            
-
-            # def process_video_frames(video_path, confidence, model, is_display_tracker, tracker):
-            #     frames = []
-            #     vid_cap = cv2.VideoCapture(video_path)
-            #     st_frame = st.empty()
-            #     while True:
-            #         success, frame = vid_cap.read()
-            #         if success:
-            #             # Process the frame and append it to the list
-            #             processed_frame = helper._display_detected_frames(confidence, model, st_frame, frame, is_display_tracker, tracker)
-            #             frames.append(processed_frame)
-            #         else:
-            #             vid_cap.release()
-            #             break
-                
-            #     return frames
-
-            ## Returning frame by frame
-            # with col2:
-            #     if source_video is None:
-            #         default_detected_video_path = str(settings.DEFAULT_DETECT_VIDEO)
-            #         st.video(default_detected_video_path, format="video/mp4")
-            #     else:
-            #         is_display_tracker, tracker = helper.display_tracker_options()
-            #         if st.sidebar.button('Detect Objects'):
-            #             temp_file = tempfile.NamedTemporaryFile(delete=False)
-            #             temp_file.write(source_video.read())
-            #             video_path = str(temp_file.name)
+                    frames = extract_frames_from_video(temp_file.name)
                     
-            #             try:
-            #                 # Get all frames with detection
-            #                 # frames = process_video_frames(video_path, confidence, model, is_display_tracker, tracker)
-            #                 # frames = process_video_frames(video_path, confidence, model, is_display_tracker, tracker)
-                            
-            #                 # Extract frames from the video
-            #                 st.session_state.frames = extract_frames_from_video(video_path)
+                    processed_frames, frame_global_output = helper.process_frames(frames, confidence, model)
+                    output_video_path = os.path.join(os.getcwd(), 'processed_video.mp4')
+                    height, width, _ = processed_frames[0].shape
+                    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
 
-            #                 # Check if there are frames to display
-            #                 if st.session_state.frames:
-            #                     # Display the current frame with detections
-            #                     st_frame = st.empty()
-            #                     # # Display the current frame based on the session state
-            #                     # st.image(frames[st.session_state.image_index], caption=f"Frame {st.session_state.image_index + 1}", use_column_width=True)
-                                
-            #                     current_frame = np.array(st.session_state.frames[st.session_state.image_index])
-            #                     helper._display_detected_frames(confidence, model, st_frame, current_frame, is_display_tracking=None, tracker=None)
+                    for frame in processed_frames:
+                        out.write(frame)
 
-            #                     # Navigation buttons
-            #                     col1, col2 = st.columns([1, 1])
+                    out.release()
 
-            #                     with col1:
-            #                         if st.button("Previous Frame") and st.session_state.image_index > 0:
-            #                             st.session_state.image_index -= 1
-            #                             current_frame = np.array(st.session_state.frames[st.session_state.image_index])
-            #                             helper._display_detected_frames(confidence, model, st_frame, current_frame, is_display_tracking=None, tracker=None)
-                                
-            #                     with col2:  
-            #                         if st.button("Next Frame") and st.session_state.image_index < len(st.session_state.frames) - 1:
-            #                             st.session_state.image_index += 1
-            #                             current_frame = np.array(st.session_state.frames[st.session_state.image_index])
-            #                             helper._display_detected_frames(confidence, model, st_frame, current_frame, is_display_tracking=None, tracker=None)
-            #                 else:
-            #                     st.write("No frames to display.")
-            #             except Exception as e:
-            #                 print("Error", e)
-            #                 st.sidebar.error("Error loading video: " + str(e))
+                    absolute_video_path = os.path.abspath(output_video_path)
+                    
+                    
+
+                # Once detection is complete, build the component count table
+                if frame_global_output:
+                    component_totals = {}
+
+                    for counts in frame_global_output:  # No need to unpack frame_index
+                        for class_name, count in counts.items():
+                            if class_name in component_totals:
+                                component_totals[class_name] += count
+                            else:
+                                component_totals[class_name] = count
+                    # Prepare data for table display
+                    table_data = []
+                    s_no = 1  
+                    for class_name, total_quantity in component_totals.items():
+                        if class_name in bom_name_id:
+                            component_name, bom_item_code = bom_name_id[class_name]
+                        else:
+                            component_name = None
+                            bom_item_code = None
+
+                        table_data.append({
+                            "S.No": s_no,
+                            "Component Class": class_name,
+                            "Component Name": component_name,
+                            "BOM Item Code": bom_item_code,
+                            "Quantity": total_quantity
+                        })
+                        s_no += 1
+
+                    # Convert to DataFrame and display in Streamlit table
+                    df = pd.DataFrame(table_data)
+                    st.table(df)
+                    print(os.path.exists(absolute_video_path))
+                    print(os.stat(absolute_video_path))
+                    st.video('processed_video.mp4', format="video/mp4")
 
 elif source_radio == settings.WEBCAM:
     helper.play_webcam(confidence, model)

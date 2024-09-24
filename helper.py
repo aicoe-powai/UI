@@ -52,7 +52,7 @@ def process_videos(input_dir, output_dir):
 
             # Create VideoWriter object for output video
             output_path = os.path.join(output_dir, filename)
-            out = cv2.VideoWriter(output_path, fourcc, fps, (480, 480))
+            out = cv2.VideoWriter(output_path, fourcc, fps)
 
             while True:
                 ret, frame = cap.read()
@@ -64,12 +64,12 @@ def process_videos(input_dir, output_dir):
                 if h > w:
                     # Crop the top
                     start_y = 0
-                    cropped_frame = frame[start_y:min_dim, 0:w] 
+                    # cropped_frame = frame[start_y:min_dim, 0:w] 
                 else:
                     # Center crop
                     start_x = (w - min_dim) // 2
-                    cropped_frame = frame[0:h, start_x:start_x + min_dim]
-                frame_resized = cv2.resize(cropped_frame, (480, 480))
+                    # cropped_frame = frame[0:h, start_x:start_x + min_dim]
+                frame_resized = cv2.resize(frame)
 
                 # Write the frame to the output video
                 out.write(frame_resized)
@@ -81,175 +81,69 @@ def process_videos(input_dir, output_dir):
 
 
 
-
-def _display_detected_frames(conf, model, st_frame, image,frame_re_ini):
+def _detect_objects(conf, model, image):
     """
-    Display the detected objects on a video frame using the YOLOv8 model.
+    Detect objects in the frame using YOLOv8 model.
+    
+    Args:
+    - conf (float): Confidence threshold for object detection.
+    - model: YOLOv8 object detection model.
+    - image: The input image (frame) to detect objects.
+
+    Returns:
+    - res: Detection results with bounding boxes and class IDs.
+    - class_count: A dictionary of object class counts in the current frame.
+    """
+    res = model.predict(image, conf=conf)
+    names = model.names
+    class_count = defaultdict(int)
+    
+    for r in res:
+        for c in r.boxes.cls:
+            class_name = names[int(c)]  
+            class_count[class_name] += 1  # Count detected objects by class
+    
+    return res, class_count
+
+def _display_detected_frames(conf, model, frame):
+    """
+    Display detected objects in a single video frame.
 
     Args:
     - conf (float): Confidence threshold for object detection.
-    - model (YoloV8): A YOLOv8 object detection model.
-    - st_frame (Streamlit object): A Streamlit object to display the detected video.
-    - image (numpy array): A numpy array representing the video frame.
-    - is_display_tracking (bool): A flag indicating whether to display object tracking (default=None).
+    - model: YOLOv8 object detection model.
+    - frame: The current frame to process and display.
 
     Returns:
-    None
+    - res_plotted: Image with detected objects plotted.
     """
-    
-    # Previous UI
-    # res = model.predict(image, conf=conf)
+    res, _ = _detect_objects(conf, model, frame)
+    res_plotted = res[0].plot()  # Draw bounding boxes and labels on frame
+    return res_plotted
 
-    # # # Plot the detected objects on the video frame
-    # res_plotted = res[0].plot()
-
-    # # res_rgb = cv2.cvtColor(res_plotted, cv2.COLOR_BGR2RGB)
-
-    # st_frame.image(res_plotted,
-    #                caption='Detected Video',
-    #                channels="BGR",
-    #                use_column_width=True
-    #                )
-
-    if frame_re_ini == 0:
-        # frame_num = 0
-        frame_class_counts.clear()
-   
-    # Predict the objects in the image using the YOLOv8 model
-    res = model.predict(image, conf=conf)
-    names = model.names
-    for r in res:
-        # Initialize a dictionary for this frame
-        class_count = defaultdict(int)  # Using defaultdict for easier counting
-        for c in r.boxes.cls:
-            class_name = names[int(c)]  
-            class_count[class_name] += 1  
-    # frame_num+=1
-    frame_class_counts[frame_re_ini] = dict(class_count)
-    res_plotted = res[0].plot()
-    st_frame.image(res_plotted,caption='Detected Video',channels="BGR",use_column_width=True)
-    return frame_class_counts
-
-# def play_youtube_video(conf, model):
-#     """
-#     Plays a webcam stream. Detects Objects in real-time using the YOLOv8 object detection model.
-
-#     Parameters:
-#         conf: Confidence of YOLOv8 model.
-#         model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-#     Returns:
-#         None
-
-#     Raises:
-#         None
-#     """
-#     source_youtube = st.sidebar.text_input("YouTube Video url")
-
-#     is_display_tracker, tracker = display_tracker_options()
-
-#     if st.sidebar.button('Detect Objects'):
-#         try:
-#             yt = YouTube(source_youtube)
-#             stream = yt.streams.filter(file_extension="mp4", res=720).first()
-#             vid_cap = cv2.VideoCapture(stream.url)
-
-#             st_frame = st.empty()
-#             while (vid_cap.isOpened()):
-#                 success, image = vid_cap.read()
-#                 if success:
-#                     _display_detected_frames(conf,
-#                                              model,
-#                                              st_frame,
-#                                              image,
-#                                              is_display_tracker,
-#                                              tracker,
-#                                              )
-#                 else:
-#                     vid_cap.release()
-#                     break
-#         except Exception as e:
-#             st.sidebar.error("Error loading video: " + str(e))
-
-
-def play_rtsp_stream(conf, model):
+def process_frames(frames, confidence, model):
     """
-    Plays an rtsp stream. Detects Objects in real-time using the YOLOv8 object detection model.
+    Process a list of video frames to detect objects and return processed frames.
 
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
+    Args:
+    - frames (list): List of video frames (images) to process.
+    - confidence (float): Confidence threshold for object detection.
+    - model: YOLOv8 object detection model.
 
     Returns:
-        None
-
-    Raises:
-        None
+    - processed_frames (list): List of frames with detected objects plotted.
+    - frame_class_counts (list of dict): List of object counts for each frame.
     """
-    source_rtsp = st.sidebar.text_input("rtsp stream url:")
-    st.sidebar.caption('Example URL: rtsp://admin:12345@192.168.1.210:554/Streaming/Channels/101')
-    # is_display_tracker, tracker = display_tracker_options()
-    if st.sidebar.button('Detect Objects'):
-        try:
-            vid_cap = cv2.VideoCapture(source_rtsp)
-            st_frame = st.empty()
-            while (vid_cap.isOpened()):
-                success, image = vid_cap.read()
-                if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image
-                                            #  is_display_tracker,
-                                            #  tracker
-                                             )
-                else:
-                    vid_cap.release()
-                    # vid_cap = cv2.VideoCapture(source_rtsp)
-                    # time.sleep(0.1)
-                    # continue
-                    break
-        except Exception as e:
-            vid_cap.release()
-            st.sidebar.error("Error loading RTSP stream: " + str(e))
+    processed_frames = []
+    frame_class_counts = []
 
+    for frame in frames:
+        res, class_count = _detect_objects(confidence, model, frame) 
+        res_plotted = res[0].plot()
+        processed_frames.append(res_plotted)
+        frame_class_counts.append(class_count)
 
-def play_webcam(conf, model):
-    """
-    Plays a webcam stream. Detects Objects in real-time using the YOLOv8 object detection model.
-
-    Parameters:
-        conf: Confidence of YOLOv8 model.
-        model: An instance of the `YOLOv8` class containing the YOLOv8 model.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
-    source_webcam = settings.WEBCAM_PATH
-    # is_display_tracker, tracker = display_tracker_options()
-    if st.sidebar.button('Detect Objects'):
-        try:
-            vid_cap = cv2.VideoCapture(source_webcam)
-            st_frame = st.empty()
-            while (vid_cap.isOpened()):
-                success, image = vid_cap.read()
-                if success:
-                    _display_detected_frames(conf,
-                                             model,
-                                             st_frame,
-                                             image
-                                            #  is_display_tracker,
-                                            #  tracker,
-                                             )
-                else:
-                    vid_cap.release()
-                    break
-        except Exception as e:
-            st.sidebar.error("Error loading video: " + str(e))
-
+    return processed_frames, frame_class_counts
 
 def play_stored_video(conf, model):
     """
